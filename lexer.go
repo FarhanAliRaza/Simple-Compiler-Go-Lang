@@ -4,12 +4,6 @@ import "unicode"
 
 type TokenType int
 
-type Source struct {
-	source  string
-	curChar string
-	curPos  int
-}
-
 type Token struct {
 	text string
 	kind int
@@ -47,11 +41,11 @@ var tokens = map[string]int{
 	"GTEQ":     211,
 }
 
-func printToken(token Token) {
+func (token Token) pprint(s string) {
 
 	for key, value := range tokens {
 		if token.kind == value {
-			println(key, ":", value, "value : ", token.text)
+			println(s, ">", key, ":", value, "value : ", token.text)
 			return
 		}
 	}
@@ -111,7 +105,9 @@ func (s *Source) getToken() Token {
 	// Check the first character of this token to see if we can decide what it is.
 	// If it is a multiple character operat|| (e.g., !=), number, identifier, || keyw||d then we will process the rest.
 	// s.skipWhitespace()
+	//check cur is newline
 	s.skipWhitespace()
+
 	s.skipComment()
 
 	if s.curChar == "+" {
@@ -122,7 +118,7 @@ func (s *Source) getToken() Token {
 		token = Token{s.curChar, tokens["ASTERISK"]}
 	} else if s.curChar == "/" {
 		token = Token{s.curChar, tokens["SLASH"]}
-	} else if s.curChar == "\n" {
+	} else if s.curChar == string('\n') {
 		token = Token{s.curChar, tokens["NEWLINE"]}
 	} else if s.curChar == "\000" {
 		token = Token{s.curChar, tokens["EOF"]}
@@ -173,26 +169,29 @@ func (s *Source) getToken() Token {
 
 		//check digits
 		start := s.curPos
-		for isDigit(s.curChar) {
+		for isDigit(s.peek()) {
 			s.nextChar()
 		}
-		if s.curChar == "." {
+		if s.peek() == "." {
 			s.nextChar()
-			if !isDigit(s.curChar) {
+			if !isDigit(s.peek()) {
 				panic("Lexing Err: Expected digit after decimal")
 			}
-			for isDigit(s.curChar) {
+			for isDigit(s.peek()) {
 				s.nextChar()
 			}
 		}
-		token = Token{s.source[start:s.curPos], tokens["NUMBER"]}
+		token = Token{s.source[start : s.curPos+1], tokens["NUMBER"]}
 
 	} else if isAlpha(s.curChar) {
+
 		start := s.curPos
-		for isAlNum(s.curChar) {
+		for isAlNum(s.peek()) {
 			s.nextChar()
 		}
-		tokenText := s.source[start:s.curPos]
+
+		tokenText := s.source[start : s.curPos+1]
+		println(tokenText, "token text")
 		keyword := isKeyWord(tokenText)
 		if keyword == 69 {
 			token = Token{tokenText, tokens["IDENT"]}
@@ -215,18 +214,18 @@ func (s *Source) nextChar() {
 		s.curChar = "\000" // EOF
 	} else {
 		s.curChar = string(s.source[s.curPos])
+
 	}
 
 }
 
-func do_lexing(codeString string) { // code_string = `+- */`
+func do_lexing(source Source) { // code_string = `+- */`
 	// Initialize the source.
-	source := Source{source: codeString + "\n", curChar: "", curPos: -1}
 	// Loop through and print all tokens.
 	token := source.getToken()
-
+	// return source
 	for token.kind != tokens["EOF"] {
-		printToken(token)
+		token.pprint("token")
 		token = source.getToken()
 
 	}
